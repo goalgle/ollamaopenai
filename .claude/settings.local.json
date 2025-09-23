@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(source:*)",
+      "Bash(python3 -m pytest design/rag_test_implementations.py::TestVectorStore::test_collection_management -v)",
+      "Bash(python3 -m pytest design/rag_test_implementations.py::TestKnowledgeManager::test_knowledge_storage_and_retrieval -v)",
+      "Bash(python3 -m pytest design/rag_test_implementations.py::TestRAGIntegration::test_document_learning_workflow -v)",
+      "Bash(python3 -m pytest design/rag_test_implementations.py::TestEmbeddingService::test_mock_embedding_generation design/rag_test_implementations.py::TestVectorStore::test_collection_management design/rag_test_implementations.py::TestKnowledgeManager::test_knowledge_storage_and_retrieval design/rag_test_implementations.py::TestRAGIntegration::test_document_learning_workflow -v)",
+      "Bash(python -m pytest design/rag_performance_tests.py::TestRAGPerformance::test_knowledge_storage_performance -v)",
+      "Bash(python -m pytest design/rag_test_implementations.py::TestEmbeddingService::test_mock_embedding_generation design/rag_test_implementations.py::TestVectorStore::test_collection_management design/rag_test_implementations.py::TestKnowledgeManager::test_knowledge_storage_and_retrieval design/rag_test_implementations.py::TestRAGIntegration::test_document_learning_workflow -v)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Read(//Users/josilang/**)",
+      "Bash(./.venv/bin/python -m pytest test/rag_test_implementations.py::TestEmbeddingService::test_mock_embedding_generation -v)",
+      "Bash(./.venv/bin/python -m pytest test/rag_performance_tests.py::TestRAGPerformance::test_knowledge_storage_performance -v)",
+      "Bash(./.venv/bin/python -m pytest test/rag_test_implementations.py::TestEmbeddingService::test_mock_embedding_generation test/rag_test_implementations.py::TestVectorStore::test_collection_management test/rag_test_implementations.py::TestKnowledgeManager::test_knowledge_storage_and_retrieval -v)",
+      "Bash(./.venv/bin/python test/rag_performance_tests.py:*)",
+      "Bash(./.venv/bin/python test/test_runner.py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
