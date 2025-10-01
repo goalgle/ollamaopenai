@@ -26,6 +26,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from rag.chroma_util import ChromaUtil, DocumentResults
+from tools.file_import import DocumentImporter
 
 
 class ChromaUtilCLI:
@@ -79,6 +80,7 @@ class ChromaUtilCLI:
         commands = [
             'collections', 'info', 'show', 'search', 'filter', 
             'metadata', 'top', 'reset', 'create', 'add', 'delete', 'drop',
+            'import', 'preview',
             'health', 'history', 'help', 'clear', 'exit', 'quit'
         ]
         
@@ -159,6 +161,40 @@ class ChromaUtilCLI:
 ║  reset                                                            ║
 ║    → Clear all filters and return to original search results      ║
 ║    → Use this to start filtering from scratch                     ║
+║                                                                   ║
+╠═══════════════════════════════════════════════════════════════════╣
+║  FILE IMPORT COMMANDS                                              ║
+╠═══════════════════════════════════════════════════════════════════╣
+║  import <collection_name> <file_path> [options]                   ║
+║    → Import documents from a Python file                          ║
+║    → File must contain 'documents' list variable                  ║
+║    → Examples:                                                    ║
+║      import my_docs ./sample_documents.py                         ║
+║      import my_docs ./data/docs.py --no-auto-id                   ║
+║      import my_docs ./data/docs.py --batch-size 50                ║
+║    → Options:                                                     ║
+║        --no-auto-id        : Don't auto-generate IDs              ║
+║        --batch-size <size> : Batch size (default: 100)            ║
+║                                                                   ║
+║  preview <file_path> [max_docs]                                   ║
+║    → Preview file contents before importing                       ║
+║    → Examples:                                                    ║
+║      preview ./sample_documents.py                                ║
+║      preview ./data/documents.py 10                               ║
+║    → Default: max_docs=5                                          ║
+║                                                                   ║
+║  File Format:                                                     ║
+║    documents = [                                                  ║
+║      {                                                            ║
+║        "id": "doc_001",        # Optional (auto-generated)        ║
+║        "document": "content",  # Required                         ║
+║        "metadata": {           # Optional                         ║
+║          "type": "tutorial",                                      ║
+║          "category": "python"                                     ║
+║        }                                                          ║
+║      },                                                           ║
+║      ...                                                          ║
+║    ]                                                              ║
 ║                                                                   ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║  EDITING COMMANDS                                                  ║
@@ -604,6 +640,116 @@ class ChromaUtilCLI:
         print("\n👋 Goodbye!\n")
         self.running = False
     
+    def handle_import(self, args: list):
+        """파일에서 문서 임포트"""
+        if len(args) < 2:
+            print("❌ Error: Collection name and file path required")
+            print("\nUsage:")
+            print("  import <collection_name> <file_path>")
+            print("  import <collection_name> <file_path> --no-auto-id")
+            print("  import <collection_name> <file_path> --batch-size 50")
+            print("\nFile format:")
+            print("  documents = [")
+            print("    {")
+            print('      "id": "doc_001",  # Optional')
+            print('      "document": "content...",')
+            print('      "metadata": {"key": "value"}')
+            print("    },")
+            print("    ...")
+            print("  ]")
+            print("\nExamples:")
+            print("  import my_docs ./sample_documents.py")
+            print("  import my_docs ./data/documents.py --no-auto-id")
+            print("  import my_docs ./data/docs.py --batch-size 50")
+            print("\n💡 Tip: Use 'preview <file_path>' to preview file before importing")
+            return
+        
+        collection_name = args[0]
+        file_path = args[1]
+        
+        # 옵션 파싱
+        auto_generate_id = True
+        batch_size = 100
+        
+        i = 2
+        while i < len(args):
+            if args[i] == '--no-auto-id':
+                auto_generate_id = False
+                i += 1
+            elif args[i] == '--batch-size' and i + 1 < len(args):
+                try:
+                    batch_size = int(args[i + 1])
+                    i += 2
+                except ValueError:
+                    print(f"❌ Error: Invalid batch size: {args[i + 1]}")
+                    return
+            else:
+                print(f"❌ Error: Unknown option: {args[i]}")
+                return
+        
+        # 파일 존재 확인
+        if not os.path.exists(file_path):
+            print(f"❌ Error: File not found: {file_path}")
+            print(f"   Make sure the file path is correct")
+            return
+        
+        # 콜렉션 확인
+        try:
+            collection = self.chroma.client.get_collection(name=collection_name)
+        except Exception as e:
+            print(f"❌ Error: Collection '{collection_name}' not found")
+            print(f"   Create it first: create {collection_name}")
+            return
+        
+        # 임포트 실행
+        try:
+            result = DocumentImporter.import_to_collection(
+                collection=collection,
+                file_path=file_path,
+                auto_generate_id=auto_generate_id,
+                batch_size=batch_size,
+                verbose=True
+            )
+            
+            # 성공 시 콜렉션 정보 출력
+            if result['imported'] > 0:
+                print(f"💡 View imported documents:")
+                print(f"   show {collection_name} 0 10")
+                print(f"   search {collection_name} \"your query\" 10")
+            
+        except Exception as e:
+            print(f"❌ Import failed: {e}")
+    
+    def handle_preview(self, args: list):
+        """파일 미리보기"""
+        if len(args) < 1:
+            print("❌ Error: File path required")
+            print("\nUsage:")
+            print("  preview <file_path> [max_docs]")
+            print("\nExamples:")
+            print("  preview ./sample_documents.py")
+            print("  preview ./data/documents.py 10")
+            print("\n💡 Tip: Preview file before importing to check format")
+            return
+        
+        file_path = args[0]
+        max_docs = int(args[1]) if len(args) > 1 else 5
+        
+        # 파일 존재 확인
+        if not os.path.exists(file_path):
+            print(f"❌ Error: File not found: {file_path}")
+            return
+        
+        # 미리보기 실행
+        try:
+            DocumentImporter.preview_file(file_path, max_docs)
+            
+            print(f"\n💡 To import this file:")
+            print(f"   import <collection_name> {file_path}")
+            
+        except Exception as e:
+            print(f"❌ Preview failed: {e}")
+    
     def process_command(self, command: str):
         """명령어 처리"""
         if not command.strip():
@@ -632,6 +778,8 @@ class ChromaUtilCLI:
             'help': self.show_help,
             'clear': self.handle_clear,
             'exit': self.handle_exit,
+            'preview': self.handle_preview,
+            'import': self.handle_import,
             'quit': self.handle_exit,
         }
         

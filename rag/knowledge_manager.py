@@ -88,7 +88,8 @@ class KnowledgeManager:
         conn.commit()
         conn.close()
 
-        # Create vector collection using ChromaUtil
+        # Create vector collection using ChromaUtil with metadata
+        from datetime import datetime
         collection_metadata = {
             "agent_name": agent_name,
             "agent_type": agent_type,

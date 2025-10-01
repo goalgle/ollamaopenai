@@ -416,16 +416,23 @@ class ChromaUtil:
         
         Args:
             collection_name: 콜렉션 이름
-            metadata: 메타데이터
+            metadata: 메타데이터 (None이면 메타데이터 없이 생성)
             
         Returns:
             성공 여부
         """
         try:
-            self.client.create_collection(
-                name=collection_name,
-                metadata=metadata or {}
-            )
+            # ChromaDB는 빈 딕셔너리를 허용하지 않음
+            # metadata가 None이거나 빈 딕셔너리면 메타데이터 없이 생성
+            if metadata:
+                self.client.create_collection(
+                    name=collection_name,
+                    metadata=metadata
+                )
+            else:
+                self.client.create_collection(
+                    name=collection_name
+                )
             print(f"✅ Collection '{collection_name}' created successfully")
             return True
         except Exception as e:
