@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from rag.vector_store import ChromaVectorStore
+from rag.chroma_util import ChromaUtil
 import numpy as np
 from typing import List, Dict
 import time
@@ -38,6 +39,7 @@ class StockAgent:
     
     def __init__(self, rag_dir: str = "./stock-rag-data"):
         self.store = ChromaVectorStore(rag_dir, use_remote=False)
+        self.chroma_util = ChromaUtil(rag_dir, use_remote=False)
         self.embedder = SimpleEmbedding()
         self.timestamp = int(time.time())
     
@@ -563,6 +565,50 @@ HBM 수주 증가로 수익성이 크게 개선되었습니다.
             print("\n✅ 모든 테스트 데이터 삭제 완료")
         else:
             print("\nℹ️  데이터가 유지됩니다.")
+    
+    def show_util_demo(self):
+        """ChromaUtil 기능 데모"""
+        print("\n" + "=" * 80)
+        print("🔧 ChromaUtil 기능 데모")
+        print("=" * 80)
+        print()
+        
+        print("=" * 80)
+        print("1️⃣  모든 콜렉션 보기")
+        print("=" * 80)
+        self.chroma_util.show_collections()
+        
+        print("=" * 80)
+        print("2️⃣  특정 콜렉션의 문서 보기 (0~3개)")
+        print("=" * 80)
+        results = self.chroma_util.show_documents(
+            self.collections['knowledge'], 0, 3
+        )
+        
+        print("=" * 80)
+        print("3️⃣  유사도 검색")
+        print("=" * 80)
+        search_results = self.chroma_util.search_similar(
+            self.collections['news'],
+            "반도체 실적",
+            limit=3
+        )
+        
+        print("=" * 80)
+        print("4️⃣  체이닝으로 유사도 필터링 (0.3 이상)")
+        print("=" * 80)
+        filtered = search_results.get_similarity_gte(0.3)
+        print(f"\n필터링 결과: {len(filtered)}개 문서")
+        for i, doc in enumerate(filtered, 1):
+            print(f"  [{i}] {doc.id}: 유사도 {doc.similarity_score:.4f}")
+        
+        print("\n" + "=" * 80)
+        print("5️⃣  콜렉션 정보 조회")
+        print("=" * 80)
+        self.chroma_util.get_collection_info(self.collections['financial'])
+        
+        print("💡 ChromaUtil을 사용하면 ChromaDB를 쉽게 탐색할 수 있습니다!")
+        print()
 
 
 def main():
@@ -591,6 +637,10 @@ def main():
         company="삼성전자",
         question="지금 매수해도 될까요? 투자 전략을 알려주세요."
     )
+    
+    # ChromaUtil 데모
+    input("\nEnter를 눌러 ChromaUtil 기능 데모 보기...")
+    agent.show_util_demo()
     
     # 정리
     agent.cleanup()
